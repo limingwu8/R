@@ -1,41 +1,84 @@
 setwd("C:/Users/Administrator/Desktop/statistical computing/titanic")
-titanic.train = read.csv(file = 'train.csv',stringsAsFactors = FALSE,header = T)
-titanic.test = read.csv(file = 'test.csv',stringsAsFactors = FALSE,header = T)
-titanic.train$IsTrainSet <- TRUE
-titanic.test$IsTrainSet <- FALSE
-titanic.test$Survived <- NA
+trainingData = read.csv(file = 'train.csv',stringsAsFactors = FALSE,header = T)
+testingData = read.csv(file = 'test.csv',stringsAsFactors = FALSE,header = T)
+
+# in order to distinguish training data and testing data after combined them toghther.
+trainingData$IsTrainSet <- TRUE
+testingData$IsTrainSet <- FALSE
+testingData$Survived <- NA
+
 
 # bind training data and testing data
-titanic.full <- rbind(titanic.train,titanic.test)
+allData <- rbind(trainingData,testingData)
 
-# fill missing values
-titanic.full[titanic.full$Embarked=='',"Embarked"] <- 'S'
-titanic.full[is.na(titanic.full$Age),'Age'] <- median(titanic.full$Age,na.rm = TRUE)
-table(is.na(titanic.full$Fare))
-#titanic.full[is.na(titanic.full$Fare),'Fare'] <- median(titanic.full$Fare,na.rm = TRUE)
+# use regressing to predict missing Age
+ageUpperOutlier <- boxplot.stats(allData$Age)$stats[5]
+ageFilter <- allData$Age < ageUpperOutlier
+ageEquation <- "Age ~ Pclass + Sex + Fare + SibSp + Parch + Embarked"
+ageModel <- lm(
+  formula = ageEquation,
+  data = allData
+)
+missingAgeRow <- allData[
+  is.na(allData$Age),
+  c("Pclass","Sex","Fare","SibSp","Parch","Embarked")
+  ]
+agePrediction <- predict(ageModel,missingAgeRow)
+allData[is.na(allData$Age),"Age"] <- agePrediction
 
-# build linear regression model to predict the missing value in Fare
-upper.whisker <- boxplot.stats(titanic.full$Fare)$stats[5]
-outlier.filter <- titanic.full$Fare < upper.whisker
+########### fill missing Fare ############
+upper.whisker <- boxplot.stats(allData$Fare)$stats[5]
+outlier.filter <- allData$Fare < upper.whisker
 fare.equation = "Fare ~ Pclass + Sex + Age + SibSp + Parch + Embarked"
 fare.model <- lm(
   formula = fare.equation,
-  data = titanic.full[outlier.filter,]
+  data = allData[outlier.filter,]
 )
 
-missingFare.row <- titanic.full[
-  is.na(titanic.full$Fare),
+missingFare.row <- allData[
+  is.na(allData$Fare),
   c("Pclass","Sex","Age","SibSp","Parch","Embarked")
-]
+  ]
+fare.predictions <- predict(fare.model,missingFare.row)
+allData[is.na(allData$Fare),"Fare"] <- fare.predictions
+##########################################
+
+
+
+########### fill missing Embarked ############
+allData[allData$Embarked=='','Embarked'] = NA
+
 
 # categorical casting
-titanic.full$Sex <- as.factor(titanic.full$Sex)
-titanic.full$Cabin <- as.factor(titanic.full$Cabin)
-titanic.full$Embarked <- as.factor(titanic.full$Embarked)
+allData$Sex <- as.factor(allData$Sex)
+allData$Cabin <- as.factor(allData$Cabin)
+allData$Embarked <- as.factor(allData$Embarked)
 
 # read back training data and testing data from full data
-titanic.train <- titanic.full[titanic.full$IsTrainSet==TRUE,]
-titanic.test <- titanic.full[titanic.full$IsTrainSet==FALSE,]
+embarkedTrainingData = allData[!is.na(allData$Embarked),]
+embarkedTestingData = allData[is.na(allData$Embarked),]
+
+embarkedTrainingData$Embarked <- as.factor(embarkedTrainingData$Embarked)
+
+embarkedEquation <- "Embarked ~ Pclass + Sex + Age + Fare + SibSp"
+embarkedFormula <- as.formula(embarkedEquation)
+
+# construct prediction model
+embarkedModel <- randomForest(formula = embarkedFormula,data=embarkedTrainingData, ntree = 500, mtry = 3, proximity=TRUE)
+embarked <- predict(embarkedModel,newdata = embarkedTestingData)
+allData[is.na(allData$Embarked),'Embarked'] <- embarked
+######################################
+
+
+
+# categorical casting
+allData$Sex <- as.factor(allData$Sex)
+allData$Cabin <- as.factor(allData$Cabin)
+allData$Embarked <- as.factor(allData$Embarked)
+
+# read back training data and testing data from full data
+titanic.train <- allData[allData$IsTrainSet==TRUE,]
+titanic.test <- allData[allData$IsTrainSet==FALSE,]
 
 titanic.train$Survived <- as.factor(titanic.train$Survived)
 
@@ -53,4 +96,4 @@ Survived <- predict(titanic.model,newdata = titanic.test)
 
 PassengerId <- titanic.test$PassengerId
 output.df <- data.frame(PassengerId,Survived)
-write.csv(output.df, file = "kaggle_submission.csv", row.names = FALSE)
+write.csv(output.df, file = "kaggle_submission2.csv", row.names = FALSE)

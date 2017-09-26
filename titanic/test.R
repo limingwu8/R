@@ -9,7 +9,6 @@ titanic.test$Survived <- NA
 
 # bind training data and testing data
 titanic.full <- rbind(titanic.train,titanic.test)
-
 # fill missing values
 titanic.full[titanic.full$Embarked=='',"Embarked"] <- 'S'
 titanic.full[is.na(titanic.full$Age),'Age'] <- median(titanic.full$Age,na.rm = TRUE)
@@ -33,7 +32,7 @@ install.packages("randomForest")
 library(randomForest)
 
 # construct prediction model
-titanic.model <- randomForest(formula = survived.formula,data=titanic.train, ntree = 500, mtry = 3, nodesize = 0.01*nrow(titanic.test))
+titanic.model <- randomForest(formula = survived.formula,data=titanic.train, ntree = 500, mtry = 3, proximity=TRUE)
 
 features.equation <- "Pclass + Sex + Age + SibSp + Fare + Embarked"
 
@@ -41,4 +40,3 @@ Survived <- predict(titanic.model,newdata = titanic.test)
 
 PassengerId <- titanic.test$PassengerId
 output.df <- data.frame(PassengerId,Survived)
-write.csv(output.df, file = "kaggle_submission.csv", row.names = FALSE)

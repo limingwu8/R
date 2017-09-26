@@ -1,0 +1,111 @@
+```{r}
+library(ggplot2)
+```
+
+```{r}
+trainingData <- read.csv(file = 'train.csv',stringsAsFactors = FALSE,header = T)
+dim(trainingData)
+```
+
+```{r}
+head(trainingData)
+```
+```{r}
+summary(trainingData)
+```
+The NA's : 177 shows that 177 values are missing in the Age column
+```{r}
+# replace the NA values with median age
+trainingData[is.na(trainingData$Age),'Age'] <- median(trainingData$Age,na.rm = TRUE)
+summary(trainingData)
+```
+```{r}
+# visualize survival base on the gender
+df <- aggregate(data.frame(trainingData$Sex,trainingData$Survived), by = list(trainingData$Sex, trainingData$Survived), FUN = length)
+df <- data.frame(df[,1],df[,2],df[,3])
+names(df) <- c("Sex","Survived","Count")
+df[df[,"Survived"]==1,"Survived"] <- "Survived"
+df[df[,"Survived"]==0,"Survived"] <- "Dead"
+p <- ggplot(data=df,aes(x=df$Survived,y=df$Count,fill=df$Sex)) + geom_bar(stat = "identity")
+p + labs(x = "Survived",y="Count", fill="Sex")
+```
+
+
+
+```{r}
+survived <- trainingData$Survived
+survived[survived==0] <- 'dead'
+survived[survived==1] <- 'survived'
+df <- data.frame(survived,trainingData$Age)
+names(df) <- c("Survived","Age")
+ggplot(df, aes(x=Age,fill=Survived)) + geom_histogram(binwidth = 2) 
+```
+
+```{r}
+# Let's now focus on the Fare ticket of each passenger and correlate it with the survival
+survived <- trainingData$Survived
+survived[survived==0] <- 'dead'
+survived[survived==1] <- 'survived'
+df <- data.frame(survived,trainingData$Fare)
+names(df) <- c("Survived","Fare")
+ggplot(df, aes(x=Fare,fill=Survived)) + geom_histogram(binwidth = 10) 
+```
+Passengers with cheaper ticket fares are more likely to die. Put differently, passengers with more expensive tickets, and therefore a more important social status, seem to be rescued first.
+```{r}
+# Let's now combine the age, the fare and the survival on a single chart.
+p <- ggplot(trainingData,aes(trainingData$Age,trainingData$Fare)) + geom_point(aes(colour = survived))
+survived <- factor(trainingData$Survived)
+p + labs(x = "Age",y="Fare")
+```
+A distinct cluster of dead passengers (the red one) appears on the chart. Those people are adults (age between 15 and 50) of lower class (lowest ticket fares).
+
+```{r}
+agg <- aggregate(trainingData$Fare~trainingData$Pclass, trainingData,mean)
+names(agg) <- c("Pclass","Fare")
+ggplot(agg, aes(agg$Pclass, agg$Fare)) + geom_col(colour="tomato1",fill="#FF9999") + labs(x = "Pclass",y="Fare")
+
+
+```
+
+```{r}
+# Let's now see how the embarkation site affects the survival.
+trainingData[trainingData$Embarked=='',"Embarked"] <- 'S'
+df <- aggregate(data.frame(trainingData$Embarked,trainingData$Survived), by = list(trainingData$Embarked, trainingData$Survived), FUN = length)
+df <- data.frame(df[,1],df[,2],df[,3])
+names(df) <- c("Embarked","Survived","Count")
+df[df[,"Survived"]==1,"Survived"] <- "Survived"
+df[df[,"Survived"]==0,"Survived"] <- "Dead"
+ggplot(data=df,aes(x=Survived,y=Count,fill=Embarked)) + geom_bar(stat = "identity")
+```
+There seems to be no distinct correlation here
+```{r}
+# combine training data and testing data together
+getCombinedData <- function(){
+  trainingData <- read.csv(file = 'train.csv',stringsAsFactors = FALSE,header = T)
+  testingData <- read.csv(file = 'test.csv',stringsAsFactors = FALSE,header = T)
+  testingData$Survived <- NA
+  combined <- rbind(trainingData,testingData)
+  return(combined)
+}
+combined <- getCombinedData()
+dim(combined)
+head(combined)
+```
+
+```{r}
+# extracting the passenger titles
+# If you look closely at these first examples:
+# Braund, Mr. Owen Harris
+# Heikkinen, Miss. Laina
+# Oliva y Ocana, Dona. Fermina
+# Peter, Master. Michael J
+# You will notice that each name has a title in it ! This can be a simple Miss. or Mrs. but it can be sometimes something more sophisticated like Master, Sir or Dona. In that case, we might introduce an additional information about the social status by simply parsing the name and extracting the title.
+
+getTitles <- function(){
+  titleDictionary = c("Officer","Officer","Officer","Royalty","Royalty","Royalty","Officer","Officer","Royalty","Royalty","Mrs","Miss","Mrs","Mr","Mrs","Miss","Master","Royalty")
+  names(titleDictionary) = c("Capt","Col","Major","Jonkheer","Don","Sir","Dr","Rev","the Countess","Dona","Mme","Mlle","Ms","Mr","Mrs","Miss","Master","Lady")
+  return(titleDictionary)
+  
+}
+```
+
