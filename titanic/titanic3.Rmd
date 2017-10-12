@@ -1,5 +1,10 @@
 ```{r}
 library(ggplot2)
+library(gridExtra)
+library(grid)
+library(randomForest)
+library(party)
+library(rpart)
 ```
 
 ```{r}
@@ -88,7 +93,6 @@ getCombinedData <- function(){
   return(combined)
 }
 combined <- getCombinedData()
-dim(combined)
 head(combined)
 ```
 
@@ -102,10 +106,222 @@ head(combined)
 # You will notice that each name has a title in it ! This can be a simple Miss. or Mrs. but it can be sometimes something more sophisticated like Master, Sir or Dona. In that case, we might introduce an additional information about the social status by simply parsing the name and extracting the title.
 
 getTitles <- function(){
-  titleDictionary = c("Officer","Officer","Officer","Royalty","Royalty","Royalty","Officer","Officer","Royalty","Royalty","Mrs","Miss","Mrs","Mr","Mrs","Miss","Master","Royalty")
-  names(titleDictionary) = c("Capt","Col","Major","Jonkheer","Don","Sir","Dr","Rev","the Countess","Dona","Mme","Mlle","Ms","Mr","Mrs","Miss","Master","Lady")
-  return(titleDictionary)
+  # ",Capt\\.", "\\." means escape sequence. It can be converted to ",Capt.",detect which name contains this string and convert it to "Officer"
+  titleDictionary = c("Officer","Officer","Officer","Royalty","Royalty","Royalty","Officer","Officer","Royalty",
+                      "Royalty","Mrs","Miss","Mrs","Mr","Mrs","Miss","Master","Royalty")
+  names(titleDictionary) = c(", Capt\\.",", Col\\.",", Major\\.",", Jonkheer\\.",", Don\\.",", Sir\\.",", Dr\\.",", Rev\\.",
+                             ", the Countess\\.",", Dona\\.",", Mme\\.",", Mlle\\.",", Ms\\.",", Mr\\.",", Mrs\\.",", Miss\\.",
+                             ", Master\\.",", Lady\\.")
   
+  return(titleDictionary)
 }
+titles <- getTitles()
+# convert Name column to Title
+convertNameToTitle <- function(titles){
+  allNames = combined$Name
+  for (i in 1:length(names(titles))){
+    index = grep(names(titles)[i],allNames)
+    allNames[index] = titles[i]
+  }
+  
+  return(allNames)
+}
+titleColumn <- convertNameToTitle(titles)
+# combined$Title <- titleColumn
+combined <- cbind(combined[,1:4],Title = titleColumn,combined[,5:ncol(combined)])
+# use the function above, all female title will be converted to Mr too.
+table(titleColumn)
+
+```
+
+```{r}
+# create family size feature
+
+table(combined$Parch)
+getFamilySize <- function(row){
+  c(row[1] + row[2])
+}
+familySize <- apply(combined[,c("Parch","SibSp")],1,getFamilySize)
+combined$FamilySize <- familySize
+```
+
+```{r}
+# analize the age column
+df <- data.frame(combined$Sex,combined$Pclass,combined$Title,combined$PassengerId,combined$Age,combined$SibSp,combined$Parch,combined$Fare)
+names(df) <- c("Sex","Pclass","Title","PassengerId","Age","SibSp","Parch","Fare")
+df$Sex <- as.character(df$Sex)
+df$Title <- as.character(df$Title)
+df <- aggregate(data.frame(df$PassengerId,df$Age,df$SibSp,df$Parch,df$Fare),by = list(df$Title,df$Pclass, df$Sex), FUN = median,na.rm=TRUE)
+names(df) <- c("Title","Pclass","Sex","PassengerId","Age","SibSp","Parch","Fare")
+df <- df[,c("Sex","Pclass","Title","PassengerId","Age","SibSp","Parch","Fare")]
+df
+```
+
+```{r}
+# use decision tree to fill missing ages
+Agefit <- rpart(Age ~ Pclass + Sex + SibSp + Parch + Fare + Embarked + Title,
+                  data=combined[!is.na(combined$Age),], 
+                  method="anova")
+combined$Age[is.na(combined$Age)] <- predict(Agefit, combined[is.na(combined$Age),])
+head(combined)
+```
+
+```{r}
+# create a function and get missing age base on the features
+# getAge <- function(row){
+#   if(row["Sex"]=="female"){
+#     if(row["Pclass"]==1){
+#       if(row["Title"]=="Miss"){
+#         return (df[df[,"Sex"]=="female"&df[,"Pclass"]==1&df[,"Title"]=="Miss","Age"])
+#       }else if(row["Title"]=="Mrs"){
+#         return (df[df[,"Sex"]=="female"&df[,"Pclass"]==1&df[,"Title"]=="Mrs","Age"])
+#       }else if(row["Title"]=="Officer"){
+#         return (df[df[,"Sex"]=="female"&df[,"Pclass"]==1&df[,"Title"]=="Officer","Age"])
+#       }else if(row["Title"]=="Royalty"){
+#         return (df[df[,"Sex"]=="female"&df[,"Pclass"]==1&df[,"Title"]=="Royalty","Age"])
+#       }else{
+#         print("something wrong")
+#       }
+#     }else if(row["Pclass"]==2){
+#       if(row["Title"]=="Miss"){
+#         return (df[df[,"Sex"]=="female"&df[,"Pclass"]==2&df[,"Title"]=="Miss","Age"])
+#       }else if(row["Title"]=="Mrs"){
+#         return (df[df[,"Sex"]=="female"&df[,"Pclass"]==2&df[,"Title"]=="Mrs","Age"])
+#       }else{
+#         print("something wrong")
+#       }
+#     }else if(row["Pclass"]==3){
+#       if(row["Title"]=="Miss"){
+#         return (df[df[,"Sex"]=="female"&df[,"Pclass"]==3&df[,"Title"]=="Miss","Age"])
+#       }else if(row["Title"]=="Mrs"){
+#         return (df[df[,"Sex"]=="female"&df[,"Pclass"]==3&df[,"Title"]=="Mrs","Age"])
+#       }else{
+#         print("something wrong")
+#       }
+#     }else{
+#       print("something wrong")
+#     }
+#   }else if(row["Sex"]=="male"){
+#     if(row["Pclass"]==1){
+#       if(row["Title"]=="Master"){
+#         return (df[df[,"Sex"]=="male"&df[,"Pclass"]==1&df[,"Title"]=="Master","Age"])
+#       }else if(row["Title"]=="Mr"){
+#         return (df[df[,"Sex"]=="male"&df[,"Pclass"]==1&df[,"Title"]=="Mr","Age"])
+#       }else if(row["Title"]=="Officer"){
+#         return (df[df[,"Sex"]=="male"&df[,"Pclass"]==1&df[,"Title"]=="Officer","Age"])
+#       }else if(row["Title"]=="Royalty"){
+#         return (df[df[,"Sex"]=="male"&df[,"Pclass"]==1&df[,"Title"]=="Royalty","Age"])
+#       }else{
+#         print("something wrong")
+#       }
+#     }else if(row["Pclass"]==2){
+#       if(row["Title"]=="Master"){
+#         return (df[df[,"Sex"]=="male"&df[,"Pclass"]==2&df[,"Title"]=="Master","Age"])
+#       }else if(row["Title"]=="Mr"){
+#         return (df[df[,"Sex"]=="male"&df[,"Pclass"]==2&df[,"Title"]=="Mr","Age"])
+#       }else if(row["Title"]=="Officer"){
+#         return (df[df[,"Sex"]=="male"&df[,"Pclass"]==2&df[,"Title"]=="Officer","Age"])
+#       }else{
+#         print("something wrong")
+#       }
+#     }else if(row["Pclass"]==3){
+#       if(row["Title"]=="Master"){
+#         return (df[df[,"Sex"]=="male"&df[,"Pclass"]==3&df[,"Title"]=="Master","Age"])
+#       }else if(row["Title"]=="Mr"){
+#         return (df[df[,"Sex"]=="male"&df[,"Pclass"]==3&df[,"Title"]=="Mr","Age"])
+#       }else{
+#         print("something wrong")
+#       }
+#     }else{
+#       print("something wrong")
+#     }
+#   }else{
+#     print("something wrong")
+#   }
+# }
+# 
+# missingAges <- apply(combined[is.na(combined[,"Age"]),],1,getAge)
+# combined[is.na(combined[,"Age"]),"Age"] <- missingAges
+# head(combined)
+```
+
+```{r}
+# fill missing fare
+upper.whisker <- boxplot.stats(combined$Fare)$stats[5]
+outlier.filter <- combined$Fare < upper.whisker
+fare.equation = "Fare ~ Pclass + Sex + Age + SibSp + Parch + Embarked"
+fare.model <- lm(
+  formula = fare.equation,
+  data = combined[outlier.filter,]
+)
+
+missingFare.row <- combined[
+  is.na(combined$Fare),
+  c("Pclass","Sex","Age","SibSp","Parch","Embarked")
+  ]
+fare.predictions <- predict(fare.model,missingFare.row)
+fare.predictions
+combined[is.na(combined$Fare),"Fare"] <- fare.predictions
+
+# combined$Fare[1044] <- median(combined$Fare, na.rm=TRUE)
+# combined$Fare[1044]
+```
+
+```{r}
+# fill missing embarked with most frequent embarked value
+table(combined$Embarked)
+combined[combined[,"Embarked"]=="","Embarked"] <- 'S'
+```
+
+```{r}
+####################### use random forest to predict the survived column of testing data  ####################
+# categorical casting
+# combined$Sex <- as.factor(combined$Sex)
+# combined$Cabin <- as.factor(combined$Cabin)
+# combined$Embarked <- as.factor(combined$Embarked)
+# 
+# # read back training data and testing data from full data
+# titanic.train <- combined[!is.na(combined$Survived),]
+# titanic.test <- combined[is.na(combined$Survived),]
+# 
+# titanic.train$Survived <- as.factor(titanic.train$Survived)
+# 
+# survived.equation <- "Survived ~ Age + Fare + Sex + Title + Pclass + SibSp + Parch + Embarked + FamilySize"
+# survived.formula <- as.formula(survived.equation)
+# 
+# 
+# # construct prediction model
+# titanic.model <- randomForest(formula = survived.formula,data=titanic.train, ntree = 2500, mtry = 3, importance = TRUE)
+# 
+# # check which feature is important
+# varImpPlot(titanic.model)
+# 
+# Survived <- predict(titanic.model,newdata = titanic.test)
+# 
+# PassengerId <- titanic.test$PassengerId
+# output.df <- data.frame(PassengerId,Survived)
+# write.csv(output.df, file = "kaggle_submission8.csv", row.names = FALSE)
+```
+
+```{r}
+###################### use conditional inference trees
+set.seed(312)
+# categorical casting
+combined$Sex <- as.factor(combined$Sex)
+combined$Cabin <- as.factor(combined$Cabin)
+combined$Embarked <- as.factor(combined$Embarked)
+combined$Survived <- as.factor(combined$Survived)
+# read back training data and testing data from full data
+titanic.train <- combined[!is.na(combined$Survived),]
+titanic.test <- combined[is.na(combined$Survived),]
+
+fit <- cforest(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare +
+                                       Embarked + Title + FamilySize,
+                 data = titanic.train, 
+                 controls=cforest_unbiased(ntree=2500, mtry=3))
+
+Prediction <- predict(fit, titanic.test, OOB=TRUE, type = "response")
+output.df <- data.frame(PassengerId = titanic.test$PassengerId,Survived = Prediction)
+write.csv(output.df, file = "kaggle_submission7.csv", row.names = FALSE)
 ```
 

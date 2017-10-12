@@ -1,0 +1,16 @@
+Arizona,523,525
+Connecticut,498,509
+Alabama,539,555
+Indiana,487,498
+Kansas,561,576
+Oregon,509,525
+Nebraska,560,571
+New York,496,502
+Virginia,507,499
+Washington,515,526
+Illinois,539,585
+North Carolina,469,493
+Georgia,475,482
+Nevada,512,517
+Ohio,520,568
+New Hampshire,510,518
