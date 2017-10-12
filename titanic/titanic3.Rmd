@@ -13,7 +13,15 @@ dim(trainingData)
 ```
 
 ```{r}
-head(trainingData)
+names(trainingData)
+```
+
+```{r}
+str(trainingData)
+```
+
+```{r}
+head(trainingData,20)
 ```
 ```{r}
 summary(trainingData)
@@ -163,7 +171,7 @@ Agefit <- rpart(Age ~ Pclass + Sex + SibSp + Parch + Fare + Embarked + Title,
                   data=combined[!is.na(combined$Age),], 
                   method="anova")
 combined$Age[is.na(combined$Age)] <- predict(Agefit, combined[is.na(combined$Age),])
-head(combined)
+head(combined,20)
 ```
 
 ```{r}
@@ -247,6 +255,7 @@ head(combined)
 
 ```{r}
 # fill missing fare
+boxplot(combined$Fare,ylab = 'Fares',main='Distribution of Fares',col='red')
 upper.whisker <- boxplot.stats(combined$Fare)$stats[5]
 outlier.filter <- combined$Fare < upper.whisker
 fare.equation = "Fare ~ Pclass + Sex + Age + SibSp + Parch + Embarked"
@@ -264,7 +273,7 @@ fare.predictions
 combined[is.na(combined$Fare),"Fare"] <- fare.predictions
 
 # combined$Fare[1044] <- median(combined$Fare, na.rm=TRUE)
-# combined$Fare[1044]
+combined$Fare[1044]
 ```
 
 ```{r}
@@ -276,52 +285,52 @@ combined[combined[,"Embarked"]=="","Embarked"] <- 'S'
 ```{r}
 ####################### use random forest to predict the survived column of testing data  ####################
 # categorical casting
-# combined$Sex <- as.factor(combined$Sex)
-# combined$Cabin <- as.factor(combined$Cabin)
-# combined$Embarked <- as.factor(combined$Embarked)
-# 
-# # read back training data and testing data from full data
-# titanic.train <- combined[!is.na(combined$Survived),]
-# titanic.test <- combined[is.na(combined$Survived),]
-# 
-# titanic.train$Survived <- as.factor(titanic.train$Survived)
-# 
-# survived.equation <- "Survived ~ Age + Fare + Sex + Title + Pclass + SibSp + Parch + Embarked + FamilySize"
-# survived.formula <- as.formula(survived.equation)
-# 
-# 
-# # construct prediction model
-# titanic.model <- randomForest(formula = survived.formula,data=titanic.train, ntree = 2500, mtry = 3, importance = TRUE)
-# 
-# # check which feature is important
-# varImpPlot(titanic.model)
-# 
-# Survived <- predict(titanic.model,newdata = titanic.test)
-# 
-# PassengerId <- titanic.test$PassengerId
-# output.df <- data.frame(PassengerId,Survived)
+combined$Sex <- as.factor(combined$Sex)
+combined$Cabin <- as.factor(combined$Cabin)
+combined$Embarked <- as.factor(combined$Embarked)
+
+# read back training data and testing data from full data
+titanic.train <- combined[!is.na(combined$Survived),]
+titanic.test <- combined[is.na(combined$Survived),]
+
+titanic.train$Survived <- as.factor(titanic.train$Survived)
+
+survived.equation <- "Survived ~ Age + Fare + Sex + Title + Pclass + SibSp + Parch + Embarked + FamilySize"
+survived.formula <- as.formula(survived.equation)
+
+
+# construct prediction model
+titanic.model <- randomForest(formula = survived.formula,data=titanic.train, ntree = 2500, mtry = 3, importance = TRUE)
+
+# check which feature is important
+varImpPlot(titanic.model)
+
+Survived <- predict(titanic.model,newdata = titanic.test)
+
+PassengerId <- titanic.test$PassengerId
+output.df <- data.frame(PassengerId,Survived)
 # write.csv(output.df, file = "kaggle_submission8.csv", row.names = FALSE)
 ```
 
 ```{r}
 ###################### use conditional inference trees
-set.seed(312)
-# categorical casting
-combined$Sex <- as.factor(combined$Sex)
-combined$Cabin <- as.factor(combined$Cabin)
-combined$Embarked <- as.factor(combined$Embarked)
-combined$Survived <- as.factor(combined$Survived)
-# read back training data and testing data from full data
-titanic.train <- combined[!is.na(combined$Survived),]
-titanic.test <- combined[is.na(combined$Survived),]
-
-fit <- cforest(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare +
-                                       Embarked + Title + FamilySize,
-                 data = titanic.train, 
-                 controls=cforest_unbiased(ntree=2500, mtry=3))
-
-Prediction <- predict(fit, titanic.test, OOB=TRUE, type = "response")
-output.df <- data.frame(PassengerId = titanic.test$PassengerId,Survived = Prediction)
-write.csv(output.df, file = "kaggle_submission7.csv", row.names = FALSE)
+# set.seed(312)
+# # categorical casting
+# combined$Sex <- as.factor(combined$Sex)
+# combined$Cabin <- as.factor(combined$Cabin)
+# combined$Embarked <- as.factor(combined$Embarked)
+# combined$Survived <- as.factor(combined$Survived)
+# # read back training data and testing data from full data
+# titanic.train <- combined[!is.na(combined$Survived),]
+# titanic.test <- combined[is.na(combined$Survived),]
+# 
+# fit <- cforest(Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare +
+#                                        Embarked + Title + FamilySize,
+#                  data = titanic.train, 
+#                  controls=cforest_unbiased(ntree=2500, mtry=3))
+# 
+# Prediction <- predict(fit, titanic.test, OOB=TRUE, type = "response")
+# output.df <- data.frame(PassengerId = titanic.test$PassengerId,Survived = Prediction)
+# write.csv(output.df, file = "kaggle_submission7.csv", row.names = FALSE)
 ```
 
