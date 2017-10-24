@@ -1,0 +1,90 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+install.packages('BSDA')
+library(BSDA)
+```
+
+```{r}
+nsize(b=5, sigma=25, conf.level=0.95, type="mu")
+```
+
+```{r}
+nsize(b = 0.01,p=0.9,conf.level = 0.95,type='pi')
+```
+
+```{r}
+# power shoudl at least
+power.t.test(d=40/50,power=0.9,sig.level=0.05,type="one.sample",alternative = "one.sided")
+```
+
+```{r}
+install.packages("pwr")
+library(pwr)
+
+pwr.t.test(d=(0-5)/5,power=0.8,sig.level=0.05,type="paired",alt="two.sided")
+```
+# Question #1
+```{r}
+install.packages("Lock5withR")
+library(Lock5withR)
+data(package="Lock5withR")
+head(Flight179,5)
+```
+
+```{r}
+t.test(Flight179,Flight180,alt="greater",mu=50)
+```
+
+#Question #2
+```{r}
+install.packages("bnlearn")
+library(bnlearn)
+data(coronary)
+head(coronary)
+```
+
+```{r}
+names(coronary)
+```
+
+```{r}
+attach(coronary)
+xtabs(~Smoking+Pressure)
+```
+
+```{r}
+prop.test(x=c(446,341),n=c(961,880))
+```
+#Question #3
+```{r}
+library(BSDA)
+nsize(b=0.2,sigma=1.2,conf.level = 0.98,type='mu')
+```
+# Question #4
+```{r}
+nsize(b=0.05,p=9/40,conf.level = 0.9,type='pi')
+```
+# Question #5
+```{r}
+install.packages('pwr')
+library(pwr)
+samplesize=cbind(NULL,NULL)
+for (i in c(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5))
+{
+  power=pwr.t.test(d=i, power=0.8,sig.level=0.05,type="two.sample",alt="two.sided")
+  samplesize=rbind(samplesize,cbind(power$d,power$n))
+}
+samplesize
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
