@@ -1,0 +1,140 @@
+---
+title: "lab15"
+output: html_document
+---
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+x = rnorm(100, mean = 5,sd =2)
+ks.test(x,"pnorm",mean=5,sd=2)
+```
+
+```{r}
+ks.test(x,"pnorm",mean=5,sd=20)
+```
+
+```{r}
+x = rexp(100,rate=2)
+hist(x)
+```
+
+```{r}
+ks.test(x,"pnorm",mean=5,sd=2)
+```
+
+```{r}
+ks.test(x,"pexp",rate = 2)
+```
+
+```{r}
+library(UsingR)
+data(stud.recs)
+attach(stud.recs)
+names(stud.recs)
+sat.m
+```
+
+```{r}
+hist(sat.m)
+```
+
+```{r}
+qqnorm(sat.m)
+qqline(sat.m)
+```
+
+```{r}
+shapiro.test(sat.m)
+# W is the test statistical vlaue
+```
+```{r}
+t.test(sat.m,sat.v)
+```
+
+```{r}
+# assume paired
+t.test(sat.m, sat.v, paired = T)
+```
+
+```{r}
+summary(sat.m)
+```
+
+```{r}
+t.test(summary(sat.m),summary(sat.v))
+```
+
+```{r}
+x<-c(8,2.1,3.8,8.6,7.3,6.1,1.4,2.9,5.5,2.7,4.8,4.6,1,8.7,0.8)
+wilcox.test(x,mu=6,alternative = 'less')
+```
+
+Question #1
+```{r}
+Online = scan()
+Traditional = scan()
+data = rbind(Online,Traditional)
+data
+```
+
+```{r}
+dimnames(data) <- list(Instruction=c("Online","Traditional"),Category=c("A","B", "C","D","F"))
+data
+```
+
+```{r}
+chisq.test(data)
+```
+
+Question #2
+```{r}
+data = scan()
+shapiro.test(data)
+```
+Question #3
+```{r}
+install.packages("PASWR")
+library(PASWR)
+data = scan()
+SIGN.test(data,md=1770)
+
+```
+
+```{r}
+t.test(data,mu = 1770)
+```
+Question #4
+```{r}
+library(UsingR)
+exec.pay
+```
+
+```{r}
+# H0:md <=22
+# Ha: md >22
+SIGN.test(exec.pay,md = 22, alt='greater')
+```
+
+```{r}
+# test this mean is non sense
+t.test(exec.pay,mu=22,alt='greater')
+```
+
+```{r}
+hist(exec.pay)
+```
+
+```{r}
+# should use median
+shapiro.test(exec.pay)
+```
+Question #5
+```{r}
+wilcox.test(galton$child,galton$parent)
+```
+
