@@ -1,0 +1,84 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+Questin #1
+```{r}
+x = c(62, 84, 17,16,21)
+chisq.test(x)
+```
+Question #2
+```{r}
+USA = c(46, 29, 29)
+China = c(38, 27, 22)
+Russia = c(24,25,33)
+Britain = c(29, 17, 19)
+Germany = c(11,19,14)
+names(USA) = c("Gold","Silver","Bronze")
+names(China) = c("Gold","Silver","Bronze")
+names(Russia) = c("Gold","Silver","Bronze")
+names(Britain) = c("Gold","Silver","Bronze")
+names(Germany) = c("Gold","Silver","Bronze")
+medal = cbind(USA,China,Russia,Britain,Germany)
+barplot(medal, legend = rownames(medal), col = c(1,2,3), beside = TRUE)
+
+```
+# Question #3
+```{r}
+VeryHappy = c(271,261,82,20)
+PrettyHappy = c(247,567,231,53)
+NotTooHappy = c(33,103,92,36)
+table = rbind(VeryHappy,PrettyHappy,NotTooHappy)
+data=data.frame(table)
+names(data) = c('Excellent', 'Good', 'Fair', 'Poor')
+data
+```
+
+```{r}
+chisq.test(data)
+```
+
+Question #4
+```{r}
+library(UsingR)
+mandms
+```
+
+```{r}
+x = c(15,34,7,19,29,24)
+p = c(0.1,0.3,0.1,0.1,0.2,0.2)
+chisq.test(x,p=p)
+```
+Question #5
+```{r}
+x = c(15,34,7,19,29,24)
+p1 = c(0.1,0.3,0.1,0.1,0.2,0.2)
+p2 = c(0.2,0.2,0.1,0.1,0.2,0.2)
+p3 = c(0.2,0.2,0.2,0.0,0.2,0.2)
+p4 = c(1/6,1/6,1/6,1/6,1/6,1/6)
+p5 = c(1/6,1/6,1/6,1/6,1/6,1/6)
+groups = c('milk chocolate','Peanut','Peanut Butter','Almond','kid minis')
+p = data.frame(p1,p2,p3,p4,p5)
+a = chisq.test(x,p=p1)
+
+print(a$p.value)
+table=cbind(NULL,NULL)
+for (i in 1:length(p)){
+  if(i==3){
+    pvalue = chisq.test(c(15,34,7,29,24),p=c(0.2,0.2,0.2,0.2,0.2))$p.value
+    table = rbind(table,cbind(groups[i],pvalue))
+    next
+  }
+  pvalue = chisq.test(x,p=p[,i])$p.value
+  table = rbind(table,cbind(groups[i],pvalue))
+}
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
